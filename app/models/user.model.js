@@ -1,9 +1,13 @@
 const sql = require("./db.js");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 // constructor
 const User = function(user) {
   this.name = user.name;
   this.email = user.email;
   this.password = user.password;
+  this.created_at = user.created_at;
+  this.updated_at = user.updated_at;
 };
 User.register = (newUser, result) => {
   sql.query("INSERT INTO users SET ?", newUser, (err, res) => {
@@ -17,6 +21,23 @@ User.register = (newUser, result) => {
   });
 };
 // for login api
+User.login = (email,password, result) => {
+  sql.query(`SELECT * FROM users WHERE email = '${email}'`, async(err, res) => {
+    if (res.length) {
+      let user_exist=await bcrypt.compare(password,res[0]['password'])
+      console.log(password);
+      if(user_exist)
+      {
+        result(null, res[0]);
+      }else{
+        // not found user with the email
+        result({ kind: "not_found" }, null);
+      }
+    }else{
+      result({ kind: "not_found" }, null);
+    }
+  });
+};
 
 User.getLogin = (email,password, result) => {
   sql.query(`SELECT * FROM users WHERE email = '${email}' AND password = '${password}'`, (err, res) => {
@@ -36,6 +57,8 @@ User.getLogin = (email,password, result) => {
 };
 
 //for login api end
+
+
 User.findById = (id, result) => {
   sql.query(`SELECT * FROM users WHERE id = ${id}`, (err, res) => {
     if (err) {

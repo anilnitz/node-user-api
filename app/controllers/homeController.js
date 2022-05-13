@@ -5,7 +5,7 @@ const db = require("../models/db.js");
 // Create and Save a new User
 var SALT_FACTOR = 5;
 
-exports.register = (req, res) => {
+exports.register = async (req, res) => {
   // Validate request
   if (!req.body) {
     res.status(400).send({
@@ -13,83 +13,37 @@ exports.register = (req, res) => {
     });
   }
   // Create a User
+  let password = await bcrypt.hash(req.body.password, 10)
   var user = new User({
     name: req.body.name,
     email: req.body.email,
-    password:req.body.password,
-    created_at: 'asdfs',
-    updated_at: 'asdfasd'
+    password: password,
+    created_at: new Date(),
+    updated_at: new Date()
   });
+  console.log(user);
+  console.log(new Date());
+  // bcrypt.hash(req.body.password, 5, (err, encrypted) => {
+  //   user.password = encrypted;
+  // })
 
-bcrypt.hash(req.body.password, 5, (err, encrypted) => {
-  var abc="password";
-  user[abc] = encrypted;
-})
-  
- 
-  
   // Save User in the database
-  User.register(user, (err, data) => {
-    if (err)
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while creating the User."
-      });
-    else res.send(data);
-  });
+
 };
 
 // for login api
 exports.login = (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-   db.query(
-    `SELECT * FROM users WHERE email = ${db.escape(req.body.email)};`,
-    (err, result) => {
-      // user does not exists
-      if (err) {
-        throw err;
-        return res.status(400).send({
-          msg: err
-        });
-      }
-      if (!result.length) {
-        return res.status(401).send({
-          msg: 'Email or password is incorrect!'
-        });
-      }
-      // check password
-      bcrypt.compare(
-        req.body.password,
-        result[0]['password'],
-        (bErr, bResult) => {
-          // wrong password
-          if (bErr) {
-            throw bErr;
-            return res.status(401).send({
-              msg: 'Email or password is incorrect!'
-            });
-          }
-          if (bResult) {
-            const token = jwt.sign({id:result[0].id},'the-super-strong-secrect',{ expiresIn: '1h' });
-            db.query(
-              `UPDATE users SET last_login = now() WHERE id = '${result[0].id}'`
-            );
-            return res.status(200).send({
-              msg: 'Logged in!',
-              token,
-              user: result[0]
-            });
-          }
-          return res.status(401).send({
-            msg: 'Username or password is incorrect!'
-          });
-        }
-      );
-    }
-  );
+  User.login(email, password, (err, data) => {
+    if (err)
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred email and password does not exist."
+      });
+    else res.send(data);
+  });
 };
-
 // Retrieve all Users from the database (with condition).
 exports.findAll = (req, res) => {
   const name = req.query.name;
